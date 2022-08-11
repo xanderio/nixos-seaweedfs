@@ -11,8 +11,13 @@
     , ...
     }:
     flake-utils.lib.eachDefaultSystem
-      (system: {
+      (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+      in
+      {
         checks = import ./checks { inherit self system nixpkgs; };
+        formatter = pkgs.nixpkgs-fmt;
       })
     // {
       nixosModules = {
