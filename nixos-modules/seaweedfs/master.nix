@@ -3,6 +3,8 @@
 , config
 , ...
 }:
+with lib;
+
 let
   cfg = config.services.seaweedfs.master;
 
@@ -10,39 +12,39 @@ let
 in
 {
   options.services.seaweedfs.master = {
-    enable = lib.mkEnableOption "seaweed master service";
+    enable = mkEnableOption "seaweed master service";
 
-    settings = lib.mkOption {
-      type = lib.types.submodule {
+    settings = mkOption {
+      type = types.submodule {
         freeformType = settingsFormat.type;
 
         options.master = {
           maintenance = {
-            scripts = lib.mkOption {
-              description = lib.mdDoc "periodically run these scripts are the same as running them from 'weed shell'";
-              type = lib.types.lines;
+            scripts = mkOption {
+              description = mdDoc "periodically run these scripts are the same as running them from 'weed shell'";
+              type = types.lines;
               default = "";
             };
 
-            sleep_minutes = lib.mkOption {
-              description = lib.mdDoc "sleep minutes between each script execution";
+            sleep_minutes = mkOption {
+              description = mdDoc "sleep minutes between each script execution";
               default = 15;
-              type = lib.types.int;
+              type = types.int;
             };
           };
 
           sequencer = {
-            type = lib.mkOption {
-              description = lib.mdDoc "Choose [raft|snowflake] type for storing the file id sequence";
+            type = mkOption {
+              description = mdDoc "Choose [raft|snowflake] type for storing the file id sequence";
               default = "raft";
-              type = lib.types.enum [ "raft" "snowflake" ];
+              type = types.enum [ "raft" "snowflake" ];
             };
-            sequencer_snowflake_id = lib.mkOption {
-              description = lib.mdDoc ''
+            sequencer_snowflake_id = mkOption {
+              description = mdDoc ''
                 when sequencer.type = snowflake, the snowflake id must be different from other masters.
                 any number between 1~1023
               '';
-              type = lib.types.ints.between 0 1023;
+              type = types.ints.between 0 1023;
               default = 0;
             };
           };
@@ -50,10 +52,10 @@ in
           volume_growth =
             let
               makeCopyOption = default:
-                lib.mkOption {
+                mkOption {
                   inherit default;
-                  type = lib.types.ints.positive;
-                  description = lib.mdDoc ''
+                  type = types.ints.positive;
+                  description = mdDoc ''
                     create this number of logical volumes if no more writable volumes
                     count_x means how many copies of data.
                     e.g.:
@@ -77,10 +79,10 @@ in
               copy_other = makeCopyOption 1;
             };
 
-          replication.treat_replication_as_minimums = lib.mkOption {
+          replication.treat_replication_as_minimums = mkOption {
             default = false;
-            type = lib.types.bool;
-            description = lib.mdDoc ''
+            type = types.bool;
+            description = mdDoc ''
               any replication counts should be considered minimums. If you specify 010 and
               have 3 different racks, that's still considered writable. Writes will still
               try to replicate to all available volumes. You should only use this option
@@ -93,7 +95,23 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     environment.etc."seaweedfs/master.toml".source = settingsFormat.generate "seaweedfs-master.toml" cfg.settings;
+
+    systemd.services.seaweedfs-master = {
+      description = "seaweedfs master";
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        DynamicUser = mkDefault true;
+        PrivateTmp = mkDefault true;
+        CacheDirectory = "seaweedfs-master";
+        ConfigurationDirectory = "seaweedfs-master";
+        RuntimeDirectory = "seaweedfs-master";
+        StateDirectory = "seaweedfs-master";
+        ExecStart = "${pkgs.seaweedfs}/bin/weed master";
+        LimitNOFILE = mkDefault 65536;
+        LimitNPROC = mkDefault 65536;
+      };
+    };
   };
 }
