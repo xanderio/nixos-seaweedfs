@@ -18,7 +18,8 @@ import (nixpkgs + "/nixos/tests/make-test-python.nix")
     };
 
     testScript = ''
-  '';
+      vm.wait_for_unit("seaweedfs-master")
+    '';
   })
 {
   inherit system;
