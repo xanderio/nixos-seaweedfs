@@ -90,7 +90,7 @@ in
 
       peers = makeCliOption {
         description = "all master nodes in comma separated ip:port list, example: 127.0.0.1:9093,127.0.0.1:9094,127.0.0.1:9095";
-        type = types.str;
+        type = types.commas;
       };
 
       port = makeCliOption {
