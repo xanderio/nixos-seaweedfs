@@ -47,7 +47,7 @@ in
     systemd.services.seaweedfs-volume =
       let
         stores = mapAttrs (_: v: concatStringsSep "," (builtins.map builtins.toString v)) (zipAttrs (builtins.attrValues cfg.stores));
-        optionsFile = pkgs.writeText "seaweedfs-volume-options" (generators.toKeyValue {} {
+        optionsFile = pkgs.writeText "seaweedfs-volume-options" (generators.toKeyValue { } {
           dir = stores.dir;
           max = stores.maxVolumes;
           disk = stores.diskTag;
